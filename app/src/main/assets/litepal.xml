@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<litepal>
+    <dbname value="zhilengnuan" />
+    <version value="1" />
+    <list>
+        <mapping class="com.lhp.zhilengnuan.db.Province" />
+        <mapping class="com.lhp.zhilengnuan.db.City" />
+        <mapping class="com.lhp.zhilengnuan.db.County" />
+    </list>
+</litepal>
