@@ -2,17 +2,21 @@ package com.lhp.zhilengnuan;
 
 
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.lhp.zhilengnuan.gson.Forecast;
 import com.lhp.zhilengnuan.gson.Weather;
 import com.lhp.zhilengnuan.utils.HttpUtil;
@@ -37,16 +41,30 @@ public class WeatherActivity extends AppCompatActivity {
     private TextView comfortText;
     private TextView carWashText;
     private TextView sportText;
+    private ImageView bingPicImg;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (Build.VERSION.SDK_INT >= 21) {
+            View decorView = getWindow().getDecorView();
+            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            getWindow().setStatusBarColor(Color.TRANSPARENT);
+        }
         setContentView(R.layout.activity_weather);
 
         initView();
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         String weatherString = preferences.getString("weather", null);
+        String imgStr = preferences.getString("bing_pic", null);
+        if (imgStr != null) {
+            Glide.with(this).load(imgStr).into(bingPicImg);
+        } else {
+            loadBingPic();
+        }
+
+
         if (weatherString != null) {
             //有缓存时直接解析天气数据
             Weather weather = Utility.handleWeatherResponse(weatherString);
@@ -56,6 +74,29 @@ public class WeatherActivity extends AppCompatActivity {
             weatherLayout.setVisibility(View.VISIBLE);
             requestWeather(weather_id);
         }
+    }
+
+    private void loadBingPic() {
+        HttpUtil.sendOkHttpRequest(Config.BING_PIC, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                final String bingPicStr = response.body().string();
+                SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
+                editor.putString("bing_pic", bingPicStr);
+                editor.apply();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Glide.with(WeatherActivity.this).load(bingPicStr).into(bingPicImg);
+                    }
+                });
+            }
+        });
     }
 
     private void requestWeather(String weather_id) {
@@ -90,6 +131,8 @@ public class WeatherActivity extends AppCompatActivity {
                 });
             }
         });
+
+        loadBingPic();
     }
 
     private void showWeatherInfo(Weather weather) {
@@ -140,5 +183,6 @@ public class WeatherActivity extends AppCompatActivity {
         comfortText = findViewById(R.id.comfort_text);
         carWashText = findViewById(R.id.car_wash_text);
         sportText = findViewById(R.id.sport_text);
+        bingPicImg = findViewById(R.id.bing_pic_img);
     }
 }
